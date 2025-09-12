@@ -285,7 +285,7 @@ generate-ci-config:
 	./openshift/ci-operator/generate-ci-config.sh $(BRANCH) > ci-operator-config.yaml
 
 generate-catalog:
-	./hack/generate/catalog.sh
+	DEBUG=1 ./hack/generate/catalog.sh
 .PHONY: generate-catalog
 
 generate-override-snapshot: install-tools
