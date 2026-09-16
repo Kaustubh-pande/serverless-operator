@@ -18,34 +18,30 @@ jobs:
   generate-ci:
     name: generate-ci
     runs-on: ubuntu-latest
-    env:
-      GOPATH: ${{ github.workspace }}
     steps:
+      - name: Checkout openshift-knative/serverless-operator
+        uses: actions/checkout@v7
+
+      - name: Checkout openshift-knative/hack
+        uses: actions/checkout@v7
+        with:
+          repository: 'openshift-knative/hack'
+          ref: 'main'
+          path: hack-repo
+
+      - name: Checkout openshift/release
+        uses: actions/checkout@v7
+        with:
+          branch: 'master'
+          repository: 'openshift/release'
+          path: hack-repo/openshift/release
+
       - name: Setup Golang
         uses: openshift-knative/hack/actions/setup-go@main
-
-      - name: Checkout openshift-knative/serverless-operator
-        uses: actions/checkout@v4
-        with:
-          path: ./src/github.com/openshift-knative/serverless-operator
 
       - name: Install yq
         run: |
           go install github.com/mikefarah/yq/v3@latest
-
-      - name: Checkout openshift-knative/hack
-        uses: actions/checkout@v4
-        with:
-          repository: 'openshift-knative/hack'
-          ref: 'main'
-          path: ./src/github.com/openshift-knative/hack
-
-      - name: Checkout openshift/release
-        uses: actions/checkout@v4
-        with:
-          branch: 'master'
-          repository: 'openshift/release'
-          path: ./src/github.com/openshift-knative/hack/openshift/release
 
       - name: Configure Git user
         run: |
@@ -54,24 +50,24 @@ jobs:
 
       - name: Generate CI (on workflow dispatch)
         if: github.event_name == 'workflow_dispatch'
-        working-directory: ./src/github.com/openshift-knative/hack
+        working-directory: hack-repo
         run: go run ./cmd/prowcopy --from-branch ${{ github.ref_name }} --branch ${{ inputs.branch }} --tag ${{ inputs.tag }} --config config/serverless-operator.yaml
 
       - name: Generate CI (on branch created)
         if:  github.event_name == 'push' && github.event.created
-        working-directory: ./src/github.com/openshift-knative/hack
-        run: go run ./cmd/prowcopy --branch ${{ github.ref_name }} --tag "release-$(yq read ../serverless-operator/olm-catalog/serverless-operator/project.yaml 'project.version')" --config config/serverless-operator.yaml
+        working-directory: hack-repo
+        run: go run ./cmd/prowcopy --branch ${{ github.ref_name }} --tag "release-$(yq read ${{ github.workspace }}/olm-catalog/serverless-operator/project.yaml 'project.version')" --config config/serverless-operator.yaml
 
       - name: Generate CI (on push)
         if: github.event_name == 'push' && github.event.created == false
-        working-directory: ./src/github.com/openshift-knative/hack
-        run: go run ./cmd/prowcopy --from-branch ${{ github.ref_name }} --branch ${{ github.ref_name }} --tag "release-$(yq read ../serverless-operator/olm-catalog/serverless-operator/project.yaml 'project.version')" --config config/serverless-operator.yaml
+        working-directory: hack-repo
+        run: go run ./cmd/prowcopy --from-branch ${{ github.ref_name }} --branch ${{ github.ref_name }} --tag "release-$(yq read ${{ github.workspace }}/olm-catalog/serverless-operator/project.yaml 'project.version')" --config config/serverless-operator.yaml
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8.1.1
         with:
           token: ${{ secrets.SERVERLESS_QE_ROBOT }}
-          path: ./src/github.com/openshift-knative/hack/openshift/release
+          path: hack-repo/openshift/release
           branch: generate-openshift-knative-serverless-operator-${{ github.ref_name }}-ci-config
           title: "[${{ github.ref_name }}] Initialize Serverless Operator CI config"
           commit-message: "[${{ github.ref_name }}] Initialize Serverless Operator CI config"
@@ -82,7 +78,7 @@ jobs:
 
       - name: Trigger Konflux and CI generation
         if: ${{ always() }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9.0.0
         with:
           github-token: ${{ secrets.SERVERLESS_QE_ROBOT }}
           script: |

@@ -14,10 +14,9 @@ jobs:
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
-          path: ./src/github.com/${{ github.repository }}
           fetch-depth: 0
 
       - name: Setup Golang
@@ -28,11 +27,9 @@ jobs:
           go install github.com/mikefarah/yq/v3@latest
 
       - name: Generate files
-        working-directory: ./src/github.com/${{ github.repository }}
         run: make generated-files
 
       - name: git push
-        working-directory: ./src/github.com/${{ github.repository }}
         run: |
           if ! git diff --exit-code --quiet
           then

@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Golang
-        uses: openshift-knative/hack/actions/setup-go@main
-
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Setup Golang
+        uses: openshift-knative/hack/actions/setup-go@main
 
       - name: Install yq
         run: |
